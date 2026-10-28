@@ -31,34 +31,23 @@ pub(crate) const SCRIPT_STACK: usize = 1 << 30;
 
 /// Why `source` is refused, if it is: too long, or nested deeper than any form needs.
 ///
-/// Brackets count everywhere, in strings, comments, regular expressions and templates too:
-/// telling a regular expression from a division takes a parser, and a guess that reads `/'/`
-/// as the start of a string would hide every bracket after it (#5079). Counting every one can
-/// only over-count, so a script with many brackets inside strings may be refused; that is the
-/// price of never under-counting. Prefix runs and conditionals skip strings and comments, so
-/// a quote inside a regular expression can still hide those from this scan.
+/// Opening brackets count everywhere, in strings and comments too: telling a regular expression
+/// from a division takes a parser, and a guess that reads `/'/` as the start of a string would
+/// otherwise hide every bracket after it (#5079). Closing brackets count only outside strings
+/// and comments, so one in a comment can't cancel real nesting either. A script with unbalanced
+/// opening brackets inside strings may be refused. This is still a scan, not a tokenizer: a
+/// quote in a regular expression or template can make a later string's closing brackets look
+/// like code, and hide prefix runs and conditionals.
 pub(crate) fn refuse(source: &str) -> Option<String> {
     if source.len() > MAX_SCRIPT_BYTES {
         return Some(format!("the script is too long ({} KiB; the limit is {} KiB)", source.len() / 1024, MAX_SCRIPT_BYTES / 1024));
     }
     let too_deep = || Some("the script is nested too deeply to run safely".to_string());
     let b = source.as_bytes();
-    let mut depth = 0usize;
-    for &c in b {
-        match c {
-            b'(' | b'[' | b'{' => {
-                depth += 1;
-                if depth > MAX_BRACKET_DEPTH {
-                    return too_deep();
-                }
-            }
-            b')' | b']' | b'}' => depth = depth.saturating_sub(1),
-            _ => {}
-        }
-    }
-    let (mut prefix, mut conditionals) = (0usize, 0usize);
+    let (mut depth, mut prefix, mut conditionals) = (0usize, 0usize, 0usize);
     let mut i = 0;
     while let Some(&c) = b.get(i) {
+        let start = i;
         i += 1;
         match c {
             b'\'' | b'"' => {
@@ -85,6 +74,17 @@ pub(crate) fn refuse(source: &str) -> Option<String> {
                 }
                 i += 2;
             }
+            b'(' | b'[' | b'{' => {
+                depth += 1;
+                if depth > MAX_BRACKET_DEPTH {
+                    return too_deep();
+                }
+                prefix = 0;
+            }
+            b')' | b']' | b'}' => {
+                depth = depth.saturating_sub(1);
+                prefix = 0;
+            }
             b'!' | b'~' | b'+' | b'-' => {
                 prefix += 1;
                 if prefix > MAX_PREFIX_RUN {
@@ -100,6 +100,12 @@ pub(crate) fn refuse(source: &str) -> Option<String> {
             }
             c if c.is_ascii_whitespace() => {}
             _ => prefix = 0,
+        }
+        // A string or comment just skipped (empty otherwise) keeps its opening brackets.
+        let skipped = b.get(start + 1..i.min(b.len())).unwrap_or_default();
+        depth = depth.saturating_add(skipped.iter().filter(|d| matches!(d, b'(' | b'[' | b'{')).count());
+        if depth > MAX_BRACKET_DEPTH {
+            return too_deep();
         }
     }
     None
