@@ -37,9 +37,9 @@ workspace and Save target stay selected. Click the downloaded file's tab to swit
 - **HTTPS:** WebGPU (and the clipboard) only work in a secure context, which means `https://`
   or `http://localhost`. Over plain HTTP elsewhere, the app falls back to WebGL2.
 - **Opener isolation:** send `Cross-Origin-Opener-Policy: same-origin` (the sample `_headers`
-  and `.htaccess` do). Pages opened from a document's links then can't reach or navigate the
-  PdfCraft tab. The app opens links with `noopener` already; the header also covers pages
-  opened by any other means. It has no effect inside an iframe, so the embedding
+  and `.htaccess` do; Apache needs `mod_headers` for it). Pages opened from a document's links
+  then can't reach or navigate the PdfCraft tab. The app opens links with `noopener` already;
+  the header also covers pages opened by any other means. It has no effect inside an iframe, so the embedding
   bridge below is unaffected, but a page on another origin that opens PdfCraft with
   `window.open` loses its handle to that window.
 - **No cross-origin isolation:** PdfCraft doesn't use `SharedArrayBuffer`, so it doesn't need

@@ -1,4 +1,4 @@
-# Apache (see HOSTING.md). Needs mod_mime; mod_deflate and mod_headers are optional.
+# Apache (see HOSTING.md). Needs mod_mime and mod_headers (for COOP); mod_deflate is optional.
 AddType application/wasm .wasm
 AddType text/javascript .js
 
