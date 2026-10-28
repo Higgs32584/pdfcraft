@@ -39,9 +39,9 @@ workspace and Save target stay selected. Click the downloaded file's tab to swit
 - **Opener isolation:** send `Cross-Origin-Opener-Policy: same-origin` (the sample `_headers`
   and `.htaccess` do; Apache needs `mod_headers` for it). Pages opened from a document's links
   then can't reach or navigate the PdfCraft tab. The app opens links with `noopener` already;
-  the header also covers pages opened by any other means. It has no effect inside an iframe, so the embedding
-  bridge below is unaffected, but a page on another origin that opens PdfCraft with
-  `window.open` loses its handle to that window.
+  the header also covers pages opened by any other means. It has no effect inside an iframe, so
+  the embedding bridge below is unaffected, but a page on another origin that opens PdfCraft
+  with `window.open` loses its handle to that window.
 - **No cross-origin isolation:** PdfCraft doesn't use `SharedArrayBuffer`, so it doesn't need
   `Cross-Origin-Embedder-Policy`. If your site already sends COEP `require-corp`, also send
   `Cross-Origin-Resource-Policy: same-origin` (or `cross-origin` when the files live on a CDN) on
