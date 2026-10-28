@@ -54,8 +54,10 @@ location /pdfcraft/ {
     types { application/wasm wasm; text/javascript js; text/html html; }
     gzip on;
     gzip_types application/wasm text/javascript text/html;
+    add_header Cross-Origin-Opener-Policy "same-origin";
     location ~* \.(wasm|js)$ { add_header Cache-Control "public, max-age=31536000, immutable"; }
-    location ~* index\.html$ { add_header Cache-Control "no-cache"; }
+    # A location with its own add_header drops the outer ones, so the page repeats COOP.
+    location ~* index\.html$ { add_header Cache-Control "no-cache"; add_header Cross-Origin-Opener-Policy "same-origin"; }
 }
 ```
 
